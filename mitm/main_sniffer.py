@@ -1,12 +1,13 @@
 from netfilterqueue import NetfilterQueue
-from scapy.all import sniff, Ether, IP, TCP
+from scapy.all import sniff, Ether, IP, TCP, Dot1Q
 import threading
 
-from mms_handler import handle_mms
-from goose_handler import handle_goose
-from sv_handler import handle_sv
+from mitm.mms_handler import handle_mms
+from mitm.goose_handler import handle_goose
+from mitm.sv_handler import handle_sv
 
 MMS_PORT = 102
+
 
 def nfqueue_handler(packet):
 
@@ -14,20 +15,41 @@ def nfqueue_handler(packet):
 
     if pkt.haslayer(TCP):
 
-        if pkt[TCP].sport == 102 or pkt[TCP].dport == 102:
-            handle_mms(pkt)
+        if pkt[TCP].sport == MMS_PORT or pkt[TCP].dport == MMS_PORT:
+            handle_mms(packet)
+            return
 
     packet.accept()
 
+
 def l2_handler(pkt):
 
-    if pkt.haslayer(Ether):
+    if not pkt.haslayer(Ether):
+        return
 
-        if pkt[Ether].type == 0x88B8:
+    eth = pkt[Ether]
+
+    # NORMAL GOOSE
+    if eth.type == 0x88B8:
+        handle_goose(pkt)
+        return
+
+    # VLAN GOOSE
+    if pkt.haslayer(Dot1Q):
+
+        vlan = pkt[Dot1Q]
+
+        if vlan.type == 0x88B8:
             handle_goose(pkt)
+            return
 
-        elif pkt[Ether].type == 0x88BA:
-            handle_sv(pkt)    
+        if vlan.type == 0x88BA:
+            handle_sv(pkt)
+            return
+
+    # NORMAL SV
+    if eth.type == 0x88BA:
+        handle_sv(pkt)
 
 def start_nfqueue():
 
@@ -39,18 +61,19 @@ def start_nfqueue():
 def start_l2_sniffer():
 
     sniff(
-        iface="eth0",
+        iface="eth1",
         prn=l2_handler,
         store=False,
-        filter="ether proto 0x88b8 or ether proto 0x88ba"
     )
 
 
 if __name__ == "__main__":
 
-    t1 = threading.Thread(target=start_nfqueue)
-    t2 = threading.Thread(target=start_l2_sniffer)
+    t1 = threading.Thread(target=start_nfqueue, daemon=True)
+    t2 = threading.Thread(target=start_l2_sniffer, daemon=True)
 
     t1.start()
     t2.start()
 
+    t1.join()
+    t2.join()
