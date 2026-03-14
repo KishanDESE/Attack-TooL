@@ -95,8 +95,11 @@ def find_mms_tlv(tlv):
 # PACKET HANDLER
 # =========================
 def handle_mms(packet):
-    pkt = IP(packet.get_payload())
-
+    if hasattr(packet, "get_payload"):
+        pkt = IP(packet.get_payload())
+    else:
+        pkt = packet
+        
     if not pkt.haslayer(TCP):
         packet.accept()
         return
@@ -131,7 +134,7 @@ def handle_mms(packet):
                 if not mms_bytes:
                    print("MMS PDU not found")
                    return
-                
+                print(f"\nMMS Packet: {pkt[IP].src}  →  {pkt[IP].dst}")
                 print("\n===== MMS PDU HEX =====")
                 print(mms_bytes.hex())
                 
@@ -147,6 +150,8 @@ def handle_mms(packet):
         del pkt[IP].len
         del pkt[IP].chksum
         del pkt[TCP].chksum
-        packet.set_payload(bytes(pkt))
-
-    packet.accept()
+        if hasattr(packet, "set_payload"):
+            packet.set_payload(bytes(pkt))
+    
+    if hasattr(packet, "accept"):
+        packet.accept()
