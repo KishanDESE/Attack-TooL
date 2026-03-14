@@ -113,7 +113,7 @@ def run_pcap(file, args):
             
             packet_index += 1
             
-            if args.packet and packet_index == args.packet
+            if args.packet and packet_index == args.packet:
                 pkt = modify_packet(pkt, args)
             
             # MMS detection
@@ -142,7 +142,7 @@ if __name__ == "__main__":
      parser.add_argument("--src-mac")
      parser.add_argument("--dst-mac")
      parser.add_argument("--save")
-     parser.add_argument("--pkt", type=int, help = "packet no to modify")
+     parser.add_argument("--packet", type=int, help = "packet no to modify")
 
      args = parser.parse_args()
 
