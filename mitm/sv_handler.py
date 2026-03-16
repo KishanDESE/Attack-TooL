@@ -20,7 +20,8 @@ def handle_sv(pkt):
 
     try:
         sv_pdu = extract_sv_pdu(raw)
-
+        
+        print(f"\nSV Packet: {pkt[Ether].src}  →  {pkt[Ether].dst}")
         print("\n===== SV PDU HEX =====")
         print(sv_pdu.hex())
 

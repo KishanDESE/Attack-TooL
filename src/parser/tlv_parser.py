@@ -214,19 +214,7 @@ def modify_tlv_value(tlv, new_value):
             byteorder="big",
             signed=True
         )
-
-        # BER rule for positive numbers:
-        # If MSB is 1, prepend 0x00
-        if new_value >= 0 and (new_bytes[0] & 0x80):
-            new_bytes = b'\x00' + new_bytes
-
-        # Ber rule for negative numbers:
-        # If MSB is 0, prepend 0xFF
-        if new_value < 0 and not (new_bytes[0] & 0x80):
-            new_bytes = b'xff' + new_bytes
-
         tlv["length"] = len(new_bytes)
-        
     elif isinstance(new_value, bytes):
         tlv["length"] = len(new_value)
     else:

@@ -22,7 +22,8 @@ def handle_goose(pkt):
 
     try:
         goose_pdu = extract_goose_pdu(raw)
-
+        
+        print(f"\nGOOSE Packet: {pkt[Ether].src}  →  {pkt[Ether].dst}")
         print("\n===== GOOSE PDU HEX =====")
         print(goose_pdu.hex())
 
