@@ -89,7 +89,7 @@ def find_tlv_by_tag_number(tlv, tag_number):
     return results
     
         
-def modify_packet(pkt, args):
+def process_packet(pkt, args, tag_lengths_global=None):
 
     if pkt.haslayer(IP):
 
@@ -100,7 +100,6 @@ def modify_packet(pkt, args):
             pkt[IP].dst = args.dst_ip
 
         del pkt[IP].chksum
-        
         if pkt.haslayer(TCP):
             del pkt[TCP].chksum
 
@@ -115,7 +114,7 @@ def modify_packet(pkt, args):
             
             
     # PDU VALUE CHANGE
-    if args.t and args.v is not None and pkt.haslayer(Raw):
+    if pkt.haslayer(Raw):
 
         payload = pkt[Raw].load
         pdu = None
@@ -139,20 +138,43 @@ def modify_packet(pkt, args):
         if pdu:
 
             tlvs = parse_all(pdu)
-            nodes = find_tlv_by_tag_number(tlvs, args.t)
-
-            for node in nodes:
-                modify_tlv_value(node, args.v)
-
-            encoded = b''
-            for tlv in tlvs:
-                encoded += encode_tlv(tlv)
-
-            start = payload.find(pdu)
-
-            pkt[Raw].load = payload[:start] + encoded
             
-    print("Packet fields changed.....")		
+            # GLOBAL LENGTH COLLECTION
+            if args.len and tag_lengths_global is not None:
+
+                def collect_lengths(tlv):
+                    if isinstance(tlv, list):
+                        for node in tlv:
+                            collect_lengths(node)
+                        return
+
+                    tag = tlv["tag_number"]
+                    length = tlv["length"]
+
+                    if tag not in tag_lengths_global:
+                        tag_lengths_global[tag] = []
+
+                    tag_lengths_global[tag].append(length)
+
+                    if tlv["constructed"]:
+                        for child in tlv["value"]:
+                            collect_lengths(child)
+
+                collect_lengths(tlvs)
+                
+            if args.t is not None and args.v is not None:   
+                nodes = find_tlv_by_tag_number(tlvs, args.t)
+
+                for node in nodes:
+                    modify_tlv_value(node, args.v)
+
+                encoded = b''
+                for tlv in tlvs:
+                    encoded += encode_tlv(tlv)
+
+                start = payload.find(pdu)
+                pkt[Raw].load = payload[:start] + encoded
+                print("Packet fields changed.....")		
     return pkt          
     
     
@@ -166,7 +188,8 @@ def run_pcap(file, args):
         
 
     with PcapReader(file) as pcap:
-
+    
+        tag_lengths_global = {}
         packet_index = 0
         
         for pkt in pcap:
@@ -174,9 +197,13 @@ def run_pcap(file, args):
             packet_index += 1
             modified = False
             
-            if args.pkt and packet_index in args.pkt:
-                pkt = modify_packet(pkt, args)
-                modified = True
+            process_for_len = args.len
+            process_for_mod = args.pkt and packet_index in args.pkt
+            
+            if process_for_len or process_for_mod:
+                pkt = process_packet(pkt, args, tag_lengths_global)
+                if process_for_mod:
+                    modified = True
             
             if args.prt:
                 # MMS detection
@@ -194,6 +221,11 @@ def run_pcap(file, args):
                         writer.write(pkt)
                 else:
                     writer.write(pkt)
+                    
+        if args.len:
+            print("\nFINAL TAG LENGTH RANGE (WHOLE PCAP).....")
+            for tag, lengths in tag_lengths_global.items():
+                print(f"Tag {tag} → {min(lengths)} to {max(lengths)}")                 
                 
     if writer:
         writer.close()           
@@ -214,6 +246,7 @@ if __name__ == "__main__":
      parser.add_argument("--t", type=lambda x: int(x,16), help="BER tag to modify")
      parser.add_argument("--v", type=int, help="new value for the tag")
      parser.add_argument("--prt", action ="store_true", help="Print parsed pkt info")
+     parser.add_argument("--len", action="store_true", help="Show TLV length range")
 
      args = parser.parse_args()
 
