@@ -37,7 +37,7 @@ def adjust_seq_ack(pkt, direction):
 
 def extract_ber_after_cotp(payload):
 
-    # ---- TPKT ----
+    # TPKT
     
     if len(payload) < 4 or payload[0] != 0x03:
         return None
@@ -45,7 +45,7 @@ def extract_ber_after_cotp(payload):
     tpkt_len = int.from_bytes(payload[2:4], "big")
     tpkt_body = payload[4:tpkt_len]
 
-    # ---- COTP ----
+    # COTP
     if len(tpkt_body) < 1:
         return None
 
@@ -56,20 +56,43 @@ def extract_ber_after_cotp(payload):
 
 def extract_mms_pdu(full_payload):
 
-    ber_data = extract_ber_after_cotp(full_payload)
-    if ber_data is None:
+    data = extract_ber_after_cotp(full_payload)
+    if data is None:
         return None
-    tlvs = parse_all(ber_data)
+
+    start = find_mms_start(data)
+    if start is None:
+        return None
+
+    mms_data = data[start:]
+
+    tlvs = parse_all(mms_data)
 
     mms_tlv = find_mms_tlv(tlvs)
-
     if not mms_tlv:
         return None
 
-    start = mms_tlv["start"]
-    end = mms_tlv["end"]
+    return mms_data[mms_tlv["start"]:mms_tlv["end"]]
+    
+def find_mms_start(data):
+    for i in range(len(data) - 3):
+        # Confirmed Request
+        if data[i] == 0xA0 and data[i+2] == 0x02:
+            return i
 
-    return ber_data[start:end]
+        # Confirmed Response
+        if data[i] == 0xA1 and data[i+2] == 0x02:
+            return i
+
+        # Initiate Request
+        if data[i] == 0xA8:
+            return i
+
+        # Initiate Response
+        if data[i] == 0xA9:
+            return i
+
+    return None
 
 def find_mms_tlv(tlv):
 
@@ -118,7 +141,7 @@ def handle_mms(packet):
 
     state = flows[key]
 
-    # 🔧 Adjust TCP numbers first
+    # Adjust TCP numbers first
     adjust_seq_ack(pkt, direction)
 
     # CLIENT → SERVER
@@ -131,15 +154,13 @@ def handle_mms(packet):
             try:
                 mms_bytes = extract_mms_pdu(payload)
                 
-                if not mms_bytes:
-                   print("MMS PDU not found")
-                   return
-                print(f"\nMMS Packet: {pkt[IP].src}  →  {pkt[IP].dst}")
-                print("\n===== MMS PDU HEX =====")
-                print(mms_bytes.hex())
+                if mms_bytes:
+                    print(f"\nMMS Packet: {pkt[IP].src}  →  {pkt[IP].dst}")
+                    print("\n===== MMS PDU HEX =====")
+                    print(mms_bytes.hex())
                 
-                tlvs = parse_all(mms_bytes)
-                pretty_print(tlvs)
+                    tlvs = parse_all(mms_bytes)
+                    pretty_print(tlvs)
 
             except Exception as e:
                 print("Parser error:", e)

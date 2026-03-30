@@ -1,7 +1,10 @@
 import sys
 import threading
 import argparse
-from netfilterqueue import NetfilterQueue
+try:
+    from netfilterqueue import NetfilterQueue
+except ImportError:
+    NetfilterQueue = None    
 from scapy.all import sniff, Ether, IP, TCP, Dot1Q, PcapReader, Raw
 from scapy.all import PcapWriter
 
@@ -54,9 +57,13 @@ def l2_handler(pkt):
     # NORMAL SV
     if eth.type == 0x88BA:
         handle_sv(pkt)
+        return
 
 def start_nfqueue():
-
+    if NetfilterQueue is None:
+        print("NetfilterQueue not available")
+        return   
+        
     nfq = NetfilterQueue()
     nfq.bind(1, nfqueue_handler)
     nfq.run()
@@ -123,17 +130,26 @@ def process_packet(pkt, args, tag_lengths_global=None):
         if pkt.haslayer(TCP) and (pkt[TCP].sport == MMS_PORT or pkt[TCP].dport == MMS_PORT):
             pdu = extract_mms_pdu(payload)
 
-	# GOOSE
-        elif pkt.haslayer(Ether) and pkt[Ether].type == 0x88B8:
-            start = payload.find(b'\x61')
-            if start != -1:
-                pdu = payload[start:]
+        elif pkt.haslayer(Ether):
 
-	# SV
-        elif pkt.haslayer(Ether) and pkt[Ether].type == 0x88BA:
-            start = payload.find(b'\x60')
-            if start != -1:
-                pdu = payload[start:]
+            #GOOSE
+            if pkt[Ether].type == 0x88B8:
+                pdu = extract_goose_pdu(bytes(pkt))
+
+	    # SV
+            if pkt[Ether].type == 0x88BA:
+                pdu = extract_sv_pdu(bytes(pkt))
+                
+            #If VLAN
+            if pkt.haslayer(Dot1Q):
+                #GOOSE
+                if pkt[Dot1Q].type == 0x88B8:
+                    pdu = extract_goose_pdu(bytes(pkt))
+                    
+                #SV
+                if pkt[Dot1Q].type == 0x88BA:
+                    pdu = extract_sv_pdu(bytes(pkt))   
+                 
 
         if pdu:
 
@@ -164,16 +180,22 @@ def process_packet(pkt, args, tag_lengths_global=None):
                 
             if args.t is not None and args.v is not None:   
                 nodes = find_tlv_by_tag_number(tlvs, args.t)
-
+                
+                count = 0
                 for node in nodes:
-                    modify_tlv_value(node, args.v)
+                    count += 1
+                    if not node["constructed"]:
+                        if count == args.occ:
+                            modify_tlv_value(node, args.v)
+                        elif count is None:
+                            modify_tlv_value(node, args.v)   
 
                 encoded = b''
                 for tlv in tlvs:
                     encoded += encode_tlv(tlv)
 
                 start = payload.find(pdu)
-                pkt[Raw].load = payload[:start] + encoded
+                pkt[Raw].load = payload[:start] + encoded + payload[start+len(pdu):]
                 print("Packet fields changed.....")		
     return pkt          
     
@@ -193,7 +215,6 @@ def run_pcap(file, args):
         packet_index = 0
         
         for pkt in pcap:
-            
             packet_index += 1
             modified = False
             
@@ -244,9 +265,10 @@ if __name__ == "__main__":
      parser.add_argument("--pkt", type=int, help = "packet no to modify", nargs="+")
      parser.add_argument("--mod", action="store_true")
      parser.add_argument("--t", type=lambda x: int(x,16), help="BER tag to modify")
-     parser.add_argument("--v", type=int, help="new value for the tag")
+     parser.add_argument("--v", type=lambda x: int(x) if x.lstrip('-').isdigit() else int.from_bytes(x.encode(), 'big'), help="new value for the tag")
      parser.add_argument("--prt", action ="store_true", help="Print parsed pkt info")
      parser.add_argument("--len", action="store_true", help="Show TLV length range")
+     parser.add_argument("--occ", type=int, help = "tag occurence")
 
      args = parser.parse_args()
 
