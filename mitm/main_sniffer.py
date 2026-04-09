@@ -264,7 +264,7 @@ if __name__ == "__main__":
      parser.add_argument("--s")
      parser.add_argument("--pkt", type=int, help = "packet no to modify", nargs="+")
      parser.add_argument("--mod", action="store_true")
-     parser.add_argument("--t", type=lambda x: int(x,16), help="BER tag to modify")
+     parser.add_argument("--t", type=int, help="BER tag to modify")
      parser.add_argument("--v", type=lambda x: int(x) if x.lstrip('-').isdigit() else int.from_bytes(x.encode(), 'big'), help="new value for the tag")
      parser.add_argument("--prt", action ="store_true", help="Print parsed pkt info")
      parser.add_argument("--len", action="store_true", help="Show TLV length range")

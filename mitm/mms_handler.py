@@ -37,7 +37,7 @@ def adjust_seq_ack(pkt, direction):
 
 def extract_ber_after_cotp(payload):
 
-    # TPKT
+    # ---- TPKT ----
     
     if len(payload) < 4 or payload[0] != 0x03:
         return None
@@ -45,7 +45,7 @@ def extract_ber_after_cotp(payload):
     tpkt_len = int.from_bytes(payload[2:4], "big")
     tpkt_body = payload[4:tpkt_len]
 
-    # COTP
+    # ---- COTP ----
     if len(tpkt_body) < 1:
         return None
 
@@ -141,7 +141,7 @@ def handle_mms(packet):
 
     state = flows[key]
 
-    # Adjust TCP numbers first
+    # 🔧 Adjust TCP numbers first
     adjust_seq_ack(pkt, direction)
 
     # CLIENT → SERVER

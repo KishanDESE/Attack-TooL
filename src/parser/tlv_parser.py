@@ -222,6 +222,113 @@ def modify_tlv_value(tlv, new_value):
 
     return tlv
 
+def _collect_nodes_flat(tlvs) -> list:
+    
+    result = []
+ 
+    def _walk(node):
+        if isinstance(node, list):
+            for n in node:
+                _walk(n)
+            return
+        result.append(node)
+        if node["constructed"]:
+            for child in node["value"]:
+                _walk(child)
+ 
+    _walk(tlvs)
+    return result
+
+def _find_ancestors(all_nodes: list, target_end: int) -> list:
+    
+    ancestors = []
+    for node in all_nodes:
+        if node["constructed"] and node["start"] < target_end <= node["end"]:
+            ancestors.append(node)
+    return ancestors
+
+def _patch_length_in_bytes(raw: bytes, node: dict, extra: int) -> bytes:
+    
+    tag_end   = node["start"] + 1          # byte right after tag byte
+    val_start = node["value_start"]        # first byte of value
+ 
+    old_len_bytes = raw[tag_end:val_start]
+    new_length    = node["length"] + extra
+    new_len_bytes = encode_length(new_length)
+ 
+    delta = len(new_len_bytes) - len(old_len_bytes)   # usually 0
+ 
+    patched = raw[:tag_end] + new_len_bytes + raw[val_start:]
+    return patched, delta
+
+def insert_tlv_after(pdu: bytes,
+                     after_tag: int,
+                     after_occ: int,
+                     new_tag: int,
+                     new_tag_class: int,
+                     new_constructed: bool,
+                     new_value: bytes) -> bytes:
+ 
+    # Parse and locate the anchor node
+    tlvs      = parse_all(pdu)
+    all_nodes = _collect_nodes_flat(tlvs)
+ 
+    matching = [n for n in all_nodes if n["tag_number"] == after_tag]
+ 
+    if not matching:
+        raise ValueError(
+            f"insert_tlv_after: tag 0x{after_tag:02X} not found in PDU."
+        )
+    if after_occ < 1 or after_occ > len(matching):
+        raise ValueError(
+            f"insert_tlv_after: occurrence {after_occ} requested but "
+            f"tag 0x{after_tag:02X} only appears {len(matching)} time(s)."
+        )
+ 
+    anchor    = matching[after_occ - 1]
+    insert_at = anchor["end"]   # byte offset right after the anchor TLV
+ 
+    # Build the new TLV bytes
+    tag_byte = (
+        (new_tag_class << 6)
+        | (0x20 if new_constructed else 0x00)
+        | (new_tag & 0x1F)
+    )
+    new_tlv_bytes = bytes([tag_byte]) + encode_length(len(new_value)) + new_value
+    extra_size    = len(new_tlv_bytes)
+ 
+    # Splice new TLV into raw bytes
+    raw = pdu[:insert_at] + new_tlv_bytes + pdu[insert_at:]
+ 
+    # Find all ancestor (constructed) nodes that wrap the anchor
+    ancestors = _find_ancestors(all_nodes, insert_at)
+ 
+    # Sort by start offset DESCENDING (innermost first) so each patch
+    # doesn't invalidate the offsets of outer nodes.
+    # Actually we need outermost LAST — sort ascending so we patch
+    # inner nodes first; each patch only shifts bytes *after* its own
+    # length field which doesn't affect inner nodes parsed earlier.
+    ancestors.sort(key=lambda n: n["start"])
+ 
+    # Patch each ancestor's length field
+    # We track a running byte-shift caused by length-field size changes
+    # (rare but possible when crossing 127-byte boundary).
+    cumulative_shift = 0
+ 
+    for anc in ancestors:
+        # Adjust stored offsets for any prior length-field size changes
+        adj_start       = anc["start"]       + cumulative_shift
+        adj_value_start = anc["value_start"] + cumulative_shift
+ 
+        # Build a temporary adjusted node dict for the patcher
+        adj_node = dict(anc)
+        adj_node["start"]       = adj_start
+        adj_node["value_start"] = adj_value_start
+ 
+        raw, delta = _patch_length_in_bytes(raw, adj_node, extra_size)
+        cumulative_shift += delta
+ 
+    return raw
 
 def encode_length(length):
     if length < 128:
