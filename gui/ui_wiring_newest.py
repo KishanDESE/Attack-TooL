@@ -16,10 +16,11 @@ from PyQt6.QtCore import Qt, QCoreApplication
 from scapy.all import PcapReader, PcapWriter, Ether, IP, TCP, Dot1Q, Raw
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.parser.tlv_parser import parse_all, encode_tlv, modify_tlv_value
-from mitm.mms_handler   import extract_mms_pdu
-from mitm.goose_handler import extract_goose_pdu
-from mitm.sv_handler    import extract_sv_pdu
+from gui_mitm_tab import inject_mitm_tab
+from parser.tlv_parser1 import parse_all, encode_tlv, modify_tlv_value
+from protocols.mms_handler   import extract_mms_pdu
+from protocols.goose_handler import extract_goose_pdu
+from protocols.sv_handler    import extract_sv_pdu
 
 MMS_PORT = 102
 
@@ -29,10 +30,8 @@ MMS_PORT = 102
 # ══════════════════════════════════════════════════════════════════════════════
 
 def collect_tlv_nodes(tlvs):
-    """
-    Returns dict  { tag_number(int) : [node, node, ...] }
-    covering every node in the entire TLV tree (depth-first).
-    """
+    
+    # Returns dict covering every node in the entire TLV tree (depth-first).
     result = {}
 
     def _walk(node):
@@ -51,7 +50,7 @@ def collect_tlv_nodes(tlvs):
 
 
 def extract_pdu_from_packet(pkt):
-    """Return (pdu_bytes, type_str) or (None, None)."""
+    # Return (pdu_bytes, type_str) or (None, None).
     if not pkt.haslayer(Raw):
         return None, None
 
@@ -79,11 +78,7 @@ def extract_pdu_from_packet(pkt):
 
 
 def node_value_display(node) -> str:
-    """
-    Return a human-readable string for a TLV node's value field.
-    - Primitive  → try to show as integer / ASCII; fall back to hex bytes
-    - Constructed → hex dump of the raw encoded children
-    """
+    
     if node["constructed"]:
         # Re-encode children back to bytes and show as hex
         raw = b"".join(encode_tlv(c) for c in node["value"])
@@ -113,10 +108,13 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        ui_path = os.path.join(os.path.dirname(__file__), "new_2.ui")
+        ui_path = os.path.join(os.path.dirname(__file__), "aius_v1.ui")
         uic.loadUi(ui_path, self)
         self._apply_scroll_area()
 
+        # ── Inject Live MITM tab ──────────────────────────────────────────
+        self.mitm_tab = inject_mitm_tab(self)
+        
         # ── Runtime state ──────────────────────────────────────────────────
         self._pcap_path: str        = ""
         self._packets:   list       = []
@@ -127,7 +125,7 @@ class MainWindow(QMainWindow):
         self._pdu_bytes: bytes = b""
         self._pdu_type:  str   = ""
 
-        self._wire_signals()
+        self._wire_passive_editor()
         self._log("[IEC61850 Tool] Ready. Load a PCAP file to begin.")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -141,23 +139,6 @@ class MainWindow(QMainWindow):
         scroll.setWidget(original)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet("""
-            QScrollArea { background-color: #0d1117; border: none; }
-            QScrollBar:vertical {
-                background: #161b22; width: 8px; border-radius: 4px;
-            }
-            QScrollBar::handle:vertical {
-                background: #30363d; border-radius: 4px; min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover { background: #58a6ff; }
-            QScrollBar:horizontal {
-                background: #161b22; height: 8px; border-radius: 4px;
-            }
-            QScrollBar::handle:horizontal {
-                background: #30363d; border-radius: 4px; min-width: 20px;
-            }
-            QScrollBar::handle:horizontal:hover { background: #58a6ff; }
-        """)
 
         container = QWidget()
         container.setStyleSheet("background-color: #0d1117;")
@@ -170,7 +151,7 @@ class MainWindow(QMainWindow):
     # ══════════════════════════════════════════════════════════════════════
     # SIGNAL WIRING
     # ══════════════════════════════════════════════════════════════════════
-    def _wire_signals(self):
+    def _wire_passive_editor(self):
 
         # Top bar
         self.btnBrowse.clicked.connect(self._on_browse)
@@ -565,7 +546,7 @@ class MainWindow(QMainWindow):
         anchor_nodes  = self._tlv_nodes.get(before_tag, [])
         new_tag_class = anchor_nodes[0]["tag_class"] if anchor_nodes else 2
  
-        from src.parser.tlv_parser import insert_tlv_after, parse_all
+        from parser.tlv_parser import insert_tlv_after
  
         old_pdu  = self._pdu_bytes          # save reference BEFORE modifying
         old_size = len(old_pdu)
@@ -899,13 +880,13 @@ class MainWindow(QMainWindow):
         with contextlib.redirect_stdout(buf):
             try:
                 if self._pdu_type == "MMS" and pkt:
-                    from mitm.mms_handler import handle_mms
+                    from protocols.mms_handler import handle_mms
                     handle_mms(pkt)
                 elif self._pdu_type == "GOOSE" and pkt:
-                    from mitm.goose_handler import handle_goose
+                    from protocols.goose_handler import handle_goose
                     handle_goose(pkt)
                 elif self._pdu_type == "SV" and pkt:
-                    from mitm.sv_handler import handle_sv
+                    from protocols.sv_handler import handle_sv
                     handle_sv(pkt)
                 else:
                     self._print_tlv_tree(parse_all(self._pdu_bytes))
@@ -941,17 +922,53 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self, "About",
             textwrap.dedent("""\
-                IEC 61850 Passive PCAP Editor & Attack Tool
-                ─────────────────────────────────────────────
-                Supports MMS (TCP/102), GOOSE (0x88B8), SV (0x88BA).
-                Load → inspect → forge → save.
+                Aius — [Attack & Intrusion Utility Suite - IEC61850]
+                ─────────────────────────────────────────────────────
+                Developed by:
+                Ayush Chand Ramola
+
+                Concept Designer:
+                Kishan Baranwal
+
+                Co-Guide:
+                Rakshit R.
+
+                Under Supervision of:
+                Prof. Haresh Dagale
+
+                Sponsored by PGCoE — POWERGRID Centre of Excellence in Cybersecurity
             """)
         )
 
-
+def closeEvent(self, event):
+    # Clean up Redis server + any running MITM worker on window close.
+    import redis_ts
+ 
+    # Stop auto-started Redis server (no-op if we didn't start it)
+    redis_ts.stop_server()
+ 
+    # Stop MITM worker if running
+    if hasattr(self, "mitm_tab") and self.mitm_tab._worker:
+        try:
+            self.mitm_tab._worker.stop()
+            self.mitm_tab._worker.wait(2000)   # wait up to 2s
+        except Exception:
+            pass
+ 
+    event.accept()
+    
 # ══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+    import sys
+    import redis_ts
+    from PyQt6.QtWidgets import QApplication
+ 
     app = QApplication(sys.argv)
+ 
+    # Ensure Redis server is stopped even if the window is closed
+    # via the OS (Alt-F4, taskbar close, etc.) rather than the X button
+    app.aboutToQuit.connect(redis_ts.stop_server)
+ 
     win = MainWindow()
     win.show()
     sys.exit(app.exec())

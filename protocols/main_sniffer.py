@@ -8,10 +8,10 @@ except ImportError:
 from scapy.all import sniff, Ether, IP, TCP, Dot1Q, PcapReader, Raw
 from scapy.all import PcapWriter
 
-from mitm.mms_handler import handle_mms, extract_mms_pdu
-from mitm.goose_handler import handle_goose, extract_goose_pdu
-from mitm.sv_handler import handle_sv, extract_sv_pdu
-from src.parser.tlv_parser import parse_all, encode_tlv, modify_tlv_value
+from protocols.mms_handler import handle_mms, extract_mms_pdu
+from protocols.goose_handler import handle_goose, extract_goose_pdu
+from protocols.sv_handler import handle_sv, extract_sv_pdu
+from parser.tlv_parser1 import parse_all, encode_tlv, modify_tlv_value
 
 MMS_PORT = 102
 
