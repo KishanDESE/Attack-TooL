@@ -8,7 +8,7 @@
  ░███░░░░░███  ░███  ░███   ░███  ░░░░░░░░███
  ░███    ░███  ░███  ░███   ░███  ███    ░███
  █████   █████ █████ ░░████████  ░░█████████
-░░░░░   ░░░░░ ░░░░░   ░░░░░░░░    ░░░░░░░░░    
+░░░░░   ░░░░░ ░░░░░   ░░░░░░░░    ░░░░░░░░░       v1.0
 ```
 
 # AIUS v1.0 — Attack & Intrusion Utility Suite
@@ -126,7 +126,7 @@ aius/
 │   ├── redis_ts.py             ← Redis TimeSeries integration (auto-start server)
 │   ├── aius_v1.ui              ← Qt Designer UI file
 │   ├── tlv_parser1.py          ← Parse / encode / modify / insert — all protocols
-|   ├── tlv_parser2.py          ← Network-level MITM components
+|   ├── tlv_parser2.py          ← Contains parse functions for live MMS traffic
 │   ├── mitm.py                 ← NFQueue handler + MITM orchestrator
 │   ├── arp_poison.py           ← ARP poisoning + iptables + ip_forward setup
 │   ├── main_sniffer.py         ← (your protocol sniffers)
@@ -134,7 +134,7 @@ aius/
 │   ├── mms_handler.py          ← (your MMS handler)
 │   └── sv_handler.py           ← (your SV handler)
 |
-├── build_installer.sh              ← builds installer files
+├── build_installer.sh              ← Builds installer files
 ├── install.sh                      ← Distro-aware installer
 └── uninstall.sh                    ← Clean removal
 ```
@@ -171,12 +171,12 @@ redis-stack-server       # Redis with TimeSeries module (auto-installed)
 ### Method 1 — Installer script (recommended)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aius.git
-cd aius
+git clone https://github.com/KishanDESE/Attack-TooL.git
+cd Attack-TooL
 sudo bash build_installer.sh
 ```
 First build the files using build_installer.sh 'sudo bash build_installer.sh ./app'.
-Then a .tar.gz file will be generated, extract it then run installer(installer.sh) within it.
+Then a .tar.gz file will be generated, extract it then run installer(install.sh) within it.
 
 The installer will:
 1. Detect your distro (Kali / Ubuntu / Debian / Parrot)
@@ -196,8 +196,8 @@ aius
 ### Method 2 — Manual (for development)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aius.git
-cd aius
+git clone https://github.com/KishanDESE/Attack-TooL.git
+cd Attack-TooL
 
 # System packages
 sudo apt install libnetfilter-queue-dev iptables python3-pyqt5 dsniff
@@ -250,10 +250,10 @@ sudo bash uninstall.sh
 
 ## TLV Parser
 
-The unified `parser/tlv_parser.py` handles all BER TLV operations across every protocol and mode:
+The unified `tlv_parser1.py` handles all BER TLV operations across every protocol and mode:
 
 ```python
-from parser.tlv_parser import (
+from tlv_parser1 import (
     parse_all,          # bytes → list[TLVNode]
     encode_all,         # list[TLVNode] → bytes
     find_tlv_by_tag,    # search by int tag number OR string name
@@ -347,10 +347,9 @@ If you use AIUS in your research, please cite:
 Contributions are welcome after the paper is published. Until then, feel free to open issues for bugs.
 
 When contributing:
-- Follow the existing package structure (`gui/`, `parser/`, `protocols/`)
-- All cross-package imports must use dotted notation (`from parser.tlv_parser import ...`)
-- New protocol handlers go in `protocols/`
-- GUI-only changes go in `gui/`
+- Follow the existing package structure
+- New protocol handlers go in `mms_handler.py, sv_handler.py, goose_hander.py`
+- GUI-only changes go in `.ui`
 
 ---
 
