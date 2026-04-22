@@ -375,5 +375,5 @@ The MIT license applies to the source code in this repository. It does not grant
 ---
 
 <div align="center">
-<sub>© 2026 Ayush Chand Ramola · IISc · PGCoE · AIUS v1.0</sub>
+<sub>© 2026 Ayush Chand Ramola · Kishan Baranwal · AIUS v1.0</sub>
 </div>
