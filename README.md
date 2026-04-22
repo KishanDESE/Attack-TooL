@@ -51,6 +51,12 @@ AIUS provides two core capabilities in a single PyQt5 GUI:
 
 ---
 
+## 🎥 Demo Video (Full Technical Presentation)
+
+> [⚡ 1-hour detailed walkthrough of AIUS including MITM attacks, TLV manipulation and detailed architecture overview](https://drive.google.com/file/d/1rmHuhAMCkcdMENUkiyuNUCcBeX9vi24q/view?usp=sharing)
+
+---
+
 ## Architecture
 
 ```
