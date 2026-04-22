@@ -360,7 +360,7 @@ When contributing:
 | Developer | Ayush Chand Ramola |
 | Concept Designer | Kishan Baranwal |
 | Co-guide | Rakshit R. |
-| Supervisor | Prof. Haresh Dagale |
+| Supervisor | Haresh Dagale |
 | Sponsor | PGCoE — PowerGrid Centre of Excellence in Cybersecurity |
 | Institution | Indian Institute of Science (IISc), Bangalore |
 
