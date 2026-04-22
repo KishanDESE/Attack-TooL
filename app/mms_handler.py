@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from scapy.all import IP, TCP, Raw, send
-from parser.tlv_parser1 import parse_all, pretty_print, encode_tlv
+from tlv_parser1 import parse_all, pretty_print, encode_tlv
 
 # CONFIG
 MMS_PORT = 102

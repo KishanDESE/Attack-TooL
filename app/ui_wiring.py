@@ -5,22 +5,22 @@ import contextlib
 import argparse
 import textwrap
 
-from PyQt6 import uic
-from PyQt6.QtWidgets import (
+from PyQt5 import uic
+from PyQt5.QtWidgets import (
     QMainWindow, QApplication, QFileDialog, QMessageBox,
     QScrollArea, QWidget, QVBoxLayout
 )
-from PyQt6.QtCore import Qt, QCoreApplication
+from PyQt5.QtCore import Qt, QCoreApplication
 
 # ── Backend imports ────────────────────────────────────────────────────────────
 from scapy.all import PcapReader, PcapWriter, Ether, IP, TCP, Dot1Q, Raw
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gui_mitm_tab import inject_mitm_tab
-from parser.tlv_parser1 import parse_all, encode_tlv, modify_tlv_value
-from protocols.mms_handler   import extract_mms_pdu
-from protocols.goose_handler import extract_goose_pdu
-from protocols.sv_handler    import extract_sv_pdu
+from tlv_parser1 import parse_all, encode_tlv, modify_tlv_value
+from mms_handler   import extract_mms_pdu
+from goose_handler import extract_goose_pdu
+from sv_handler    import extract_sv_pdu
 
 MMS_PORT = 102
 
@@ -546,7 +546,7 @@ class MainWindow(QMainWindow):
         anchor_nodes  = self._tlv_nodes.get(before_tag, [])
         new_tag_class = anchor_nodes[0]["tag_class"] if anchor_nodes else 2
  
-        from parser.tlv_parser import insert_tlv_after
+        from tlv_parser1 import insert_tlv_after
  
         old_pdu  = self._pdu_bytes          # save reference BEFORE modifying
         old_size = len(old_pdu)
@@ -725,7 +725,7 @@ class MainWindow(QMainWindow):
                 if should_mod:
                     pkt = self._apply_tcp_fields(pkt)
                     # Apply IP / MAC / TLV changes via backend
-                    from mitm.main_sniffer import process_packet
+                    from main_sniffer import process_packet
                     pkt = process_packet(pkt, args, {})
 
                 if mod_only and not should_mod:
@@ -850,7 +850,7 @@ class MainWindow(QMainWindow):
  
                 # ── TLV / payload changes — only on selected packet ────────────
                 if idx in pkt_nos and (args.t is not None and args.v is not None):
-                    from mitm.main_sniffer import process_packet
+                    from main_sniffer import process_packet
                     pkt = process_packet(pkt, args, {})
  
                 # ── Recompute checksums ────────────────────────────────────────
@@ -880,13 +880,13 @@ class MainWindow(QMainWindow):
         with contextlib.redirect_stdout(buf):
             try:
                 if self._pdu_type == "MMS" and pkt:
-                    from protocols.mms_handler import handle_mms
+                    from mms_handler import handle_mms
                     handle_mms(pkt)
                 elif self._pdu_type == "GOOSE" and pkt:
-                    from protocols.goose_handler import handle_goose
+                    from goose_handler import handle_goose
                     handle_goose(pkt)
                 elif self._pdu_type == "SV" and pkt:
-                    from protocols.sv_handler import handle_sv
+                    from sv_handler import handle_sv
                     handle_sv(pkt)
                 else:
                     self._print_tlv_tree(parse_all(self._pdu_bytes))
@@ -922,7 +922,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self, "About",
             textwrap.dedent("""\
-                Aius — [Attack & Intrusion Utility Suite - IEC61850]
+                AIUS v1.0 — [Attack & Intrusion Utility Suite - IEC61850]
                 ─────────────────────────────────────────────────────
                 Developed by:
                 Ayush Chand Ramola
@@ -961,7 +961,7 @@ def closeEvent(self, event):
 if __name__ == "__main__":
     import sys
     import redis_ts
-    from PyQt6.QtWidgets import QApplication
+    from PyQt5.QtWidgets import QApplication
  
     app = QApplication(sys.argv)
  

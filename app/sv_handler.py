@@ -1,5 +1,5 @@
 from scapy.all import Ether
-from parser.tlv_parser1 import parse_all, pretty_print, encode_tlv
+from tlv_parser1 import parse_all, pretty_print, encode_tlv
 
 def extract_sv_pdu(frame_bytes):
 

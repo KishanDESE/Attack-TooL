@@ -6,12 +6,12 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from PyQt6 import QtCore, QtWidgets, uic
-from PyQt6.QtWidgets import (
+from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5.QtWidgets import (
     QMainWindow, QApplication, QFileDialog, QMessageBox,
     QScrollArea, QWidget, QVBoxLayout
 )
-from PyQt6.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
 
 
 # ─────────────────────────────────────────────────────────────────────────────

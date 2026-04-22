@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1160</width>
-    <height>1068</height>
+    <width>1218</width>
+    <height>1199</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Aius v1.0 — IEC 61850 Attack &amp; Intrusion Utility Suite</string>
+   <string>AIUS v1.0 — IEC 61850 Attack &amp; Intrusion Utility Suite</string>
   </property>
   <property name="styleSheet">
    <string notr="true">
@@ -203,7 +203,7 @@ QToolTip { background-color: #21262d; color: #e6edf3; border: 1px solid #58a6ff;
            <string notr="true">color: #bf247a; </string>
           </property>
           <property name="text">
-           <string>Aius v1.0</string>
+           <string>AIUS v1.0</string>
           </property>
          </widget>
         </item>
@@ -224,15 +224,28 @@ QToolTip { background-color: #21262d; color: #e6edf3; border: 1px solid #58a6ff;
        </layout>
       </item>
       <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap>iisc1.png</pixmap>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label">
         <property name="text">
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>pg_logo3.jpeg</pixmap>
+         <pixmap>embsys5.png</pixmap>
         </property>
         <property name="alignment">
-         <set>Qt::AlignCenter</set>
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -1195,7 +1208,7 @@ QToolTip { background-color: #21262d; color: #e6edf3; border: 1px solid #58a6ff;
            <string notr="true">color: #30363d; font-size: 12px; font-family: &quot;Consolas&quot;, monospace;</string>
           </property>
           <property name="text">
-           <string>Aius v1.0  ·  © 2026  Ayush Chand Ramola  ·  IISc | PGCoE</string>
+           <string>AIUS v1.0  ·  © 2026  Ayush Chand Ramola  ·  IISc | PGCoE</string>
           </property>
          </widget>
         </item>
@@ -1223,7 +1236,7 @@ QToolTip { background-color: #21262d; color: #e6edf3; border: 1px solid #58a6ff;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1160</width>
+     <width>1218</width>
      <height>19</height>
     </rect>
    </property>
@@ -1303,7 +1316,7 @@ QMenu::separator { height: 1px; background: #30363d; margin: 4px 0; }
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>About Aius v1.0</string>
+    <string>About AIUS v1.0</string>
    </property>
   </action>
  </widget>
