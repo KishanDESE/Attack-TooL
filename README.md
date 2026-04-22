@@ -332,20 +332,15 @@ This tool was developed as part of cybersecurity research on **IEC 61850 substat
 A research paper describing the attack methodology, experimental results, and proposed detection mechanisms is currently under preparation. This repository will be linked from the paper upon publication.
 
 If you use AIUS in your research, please cite:
-
+ACM/IEEE BibTeX
 ```bibtex
-@software{ramola2026aius,
-  author    = {Ramola, Ayush Chand},
-  title     = {{AIUS: Attack and Intrusion Utility Suite for IEC 61850}},
-  year      = {2026},
-  version   = {1.0},
-  url       = {https://github.com/YOUR_USERNAME/aius},
-  note      = {Concept: Kishan Baranwal, Co-guide: Rakshit R.,
-               Supervisor: Prof. Haresh Dagale,
-               Sponsor: PGCoE — PowerGrid Centre of Excellence in Cybersecurity}
+@misc{aius2026,
+  author = {Ayush Chand Ramola, Kishan Baranwal, Rakshit R., Haresh Dagale},
+  title = {AIUS: Attack and Intrusion Utility Suite for IEC 61850},
+  year = {2026},
+  url = {https://github.com/KishanDESE/Attack-TooL}
 }
 ```
-
 ---
 
 ## Contributing
