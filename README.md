@@ -1,12 +1,14 @@
 <div align="center">
 
 ```
-  ░█████╗░░█████╗░██╗░░░██╗░██████╗
-  ██╔══██╗██╔══██╗██║░░░██║██╔════╝
-  ███████║██║░░╚═╝██║░░░██║╚█████╗░
-  ██╔══██║██║░░██╗██║░░░██║░╚═══██╗
-  ██║░░██║╚█████╔╝╚██████╔╝██████╔╝
-  ╚═╝░░╚═╝░╚════╝░░╚═════╝░╚═════╝
+     █████████   █████ █████  █████  █████████
+  ███░░░░░███ ░░███ ░░███  ░░███  ███░░░░░███
+ ░███    ░███  ░███  ░███   ░███ ░███    ░░░
+ ░███████████  ░███  ░███   ░███ ░░█████████
+ ░███░░░░░███  ░███  ░███   ░███  ░░░░░░░░███
+ ░███    ░███  ░███  ░███   ░███  ███    ░███
+ █████   █████ █████ ░░████████  ░░█████████
+░░░░░   ░░░░░ ░░░░░   ░░░░░░░░    ░░░░░░░░░    
 ```
 
 # AIUS v1.0 — Attack & Intrusion Utility Suite
@@ -116,31 +118,23 @@ AIUS v1.0 — High-Level Architecture
 
 ```
 aius/
-├── run.py                          ← Entry point  (sudo python3 run.py)
-│
 ├── app/
-│   ├── gui/                        ← GUI layer + attack engine
-│   │   ├── main.py                 ← MainWindow, streaming PCAP loader, signal wiring
-│   │   ├── gui_mitm_tab.py         ← Live MITM tab widget + MitmWorker QThread
-│   │   ├── attack_engine.py        ← All 7 attack operations (NFQueue dispatch)
-│   │   ├── json_writer.py          ← Packet → JSON store (thread-safe, fcntl.flock)
-│   │   ├── redis_ts.py             ← Redis TimeSeries integration (auto-start server)
-│   │   ├── aius_v1.ui              ← Qt Designer UI file
-│   │   └── __init__.py
-│   │
-│   ├── parser/                     ← Unified BER TLV parser
-│   │   ├── tlv_parser.py           ← Parse / encode / modify / insert — all protocols
-│   │   └── __init__.py
-│   │
-│   └── protocols/                  ← Network-level MITM components
-│       ├── mitm.py                 ← NFQueue handler + MITM orchestrator
-│       ├── arp_poison.py           ← ARP poisoning + iptables + ip_forward setup
-│       ├── main_sniffer.py         ← (your protocol sniffers)
-│       ├── goose_handler.py        ← (your GOOSE handler)
-│       ├── mms_handler.py          ← (your MMS handler)
-│       ├── sv_handler.py           ← (your SV handler)
-│       └── __init__.py
-│
+│   ├── ui_wiring.py            ← (starting point, main file) MainWindow, streaming PCAP loader, signal wiring
+│   ├── gui_mitm_tab.py         ← Live MITM tab widget + MitmWorker QThread
+│   ├── attack_engine.py        ← All 7 attack operations (NFQueue dispatch)
+│   ├── json_writer.py          ← Packet → JSON store (thread-safe, fcntl.flock)
+│   ├── redis_ts.py             ← Redis TimeSeries integration (auto-start server)
+│   ├── aius_v1.ui              ← Qt Designer UI file
+│   ├── tlv_parser1.py          ← Parse / encode / modify / insert — all protocols
+|   ├── tlv_parser2.py          ← Network-level MITM components
+│   ├── mitm.py                 ← NFQueue handler + MITM orchestrator
+│   ├── arp_poison.py           ← ARP poisoning + iptables + ip_forward setup
+│   ├── main_sniffer.py         ← (your protocol sniffers)
+│   ├── goose_handler.py        ← (your GOOSE handler)
+│   ├── mms_handler.py          ← (your MMS handler)
+│   └── sv_handler.py           ← (your SV handler)
+|
+├── build_installer.sh              ← builds installer files
 ├── install.sh                      ← Distro-aware installer
 └── uninstall.sh                    ← Clean removal
 ```
@@ -179,8 +173,10 @@ redis-stack-server       # Redis with TimeSeries module (auto-installed)
 ```bash
 git clone https://github.com/YOUR_USERNAME/aius.git
 cd aius
-sudo bash install.sh
+sudo bash build_installer.sh
 ```
+First build the files using build_installer.sh 'sudo bash build_installer.sh ./app'.
+Then a .tar.gz file will be generated, extract it then run installer(installer.sh) within it.
 
 The installer will:
 1. Detect your distro (Kali / Ubuntu / Debian / Parrot)
@@ -221,6 +217,8 @@ sudo python3 run.py
 ### Uninstall
 
 ```bash
+sudo bash install.sh --remove
+OR
 sudo bash uninstall.sh
 ```
 
