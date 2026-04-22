@@ -332,7 +332,6 @@ This tool was developed as part of cybersecurity research on **IEC 61850 substat
 A research paper describing the attack methodology, experimental results, and proposed detection mechanisms is currently under preparation. This repository will be linked from the paper upon publication.
 
 If you use AIUS in your research, please cite:
-ACM/IEEE BibTeX
 ```bibtex
 @misc{aius2026,
   author = {Ayush Chand Ramola, Kishan Baranwal, Rakshit R., Haresh Dagale},
